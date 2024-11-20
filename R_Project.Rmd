@@ -1,0 +1,29 @@
+---
+title: "R Project: National Parks Species"
+---
+
+# libraries 
+```{r}
+libs <- c("tidyverse", "tidytuesdayR", "scales")
+
+installed_libs <- libs %in% rownames(installed.packages())
+if (any(installed_libs == F)) {
+    install.packages(libs[!installed_libs])
+} else{
+  print("All the libraries already installed")
+}
+```
+
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+library(scales)
+```
+
+```{r message=FALSE, warning=FALSE}
+data <- read_csv("species.csv")
+
+data
+
+```
+

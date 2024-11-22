@@ -27,3 +27,73 @@ data
 
 ```
 
+```{r}
+bird_data <- data %>% 
+  filter(CategoryName == "Bird")
+
+season_birds_by_park_data <- bird_data %>%
+  mutate(
+    NPSTags = gsub(";|,", ",", NPSTags),        # Standardize delimiters to ","
+    NPSTags = ifelse(is.na(NPSTags), "Whole Year / Unknown", NPSTags)    # Mark missing tags
+  ) %>%
+  separate_rows(NPSTags, sep = ",\\s*") %>%     # Split tags into individual rows
+  mutate(NPSTags = ifelse(!NPSTags %in% c("Winter", "Summer"), "Whole Year / Unknown", NPSTags)) %>%
+  group_by(ParkCode, NPSTags) %>%
+  summarise(Count = n(), .groups = "drop")
+
+plot_data <- season_birds_by_park_data %>%
+  group_by(ParkCode) %>%
+  mutate(Proportion = Count / sum(Count)) %>% 
+  filter(!(NPSTags == "Whole Year / Unknown" & Proportion == 1))
+
+season_birds_by_park_plot <-
+  ggplot(plot_data, aes(x = "", y = Proportion, fill = NPSTags)) +
+    geom_bar(stat = "identity", width = 1) +
+    coord_polar(theta = "y") +
+    facet_wrap(~ParkCode) +
+    labs(
+      title = "Relation of Winter, Summer, and Whole Year Birds by Park",
+      x = NULL,
+      y = NULL,
+      fill = "Tag"
+    ) +
+    theme_void() +  # Clean theme for pie charts
+    theme(
+      strip.text = element_text(size = 12)  # Adjust facet labels
+    )
+
+season_birds_by_park_plot
+```
+
+```{r}
+vagrant_vs_resident_by_category_data <- data %>%
+  mutate(
+    NPSTags = gsub(";|,", ",", NPSTags)) %>%
+  separate_rows(NPSTags, sep = ",\\s*") %>%     # Split tags into individual rows
+  filter(NPSTags %in% c("Vagrant", "Resident")) %>%
+  group_by(CategoryName, NPSTags) %>%
+  summarise(Count = n(), .groups = "drop")
+
+plot_data <- vagrant_vs_resident_by_category_data %>%
+  group_by(CategoryName) %>%
+  mutate(Proportion = Count / sum(Count))
+
+vagrant_vs_resident_by_category_plot <-
+  ggplot(plot_data, aes(x = "", y = Proportion, fill = NPSTags)) +
+    geom_bar(stat = "identity") +
+    coord_polar(theta = "y") +
+    facet_wrap(~CategoryName) +
+    labs(
+      title = "Relation Between Vagrants and Residents by Category",
+      x = NULL,
+      y = NULL,
+      fill = NULL
+    ) +
+    theme_void() +  # Clean theme for pie charts
+    theme(
+      strip.text = element_text(size = 8.5),  # Adjust facet labels
+      plot.title = element_text(hjust = 0.5, margin = margin(b = 10, t = 10))
+    )
+
+vagrant_vs_resident_by_category_plot
+```

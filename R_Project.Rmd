@@ -27,3 +27,30 @@ data
 
 ```
 
+```{r message=FALSE, warning=FALSE}
+
+
+nativeness_count <- data %>%
+  filter(!is.na(Nativeness)) %>% 
+  group_by(Nativeness) %>%
+  summarise(Count = n()) %>%
+  mutate(Percentage = Count / sum(Count) * 100)
+
+# Pie chart
+ggplot(nativeness_count, aes(x = "", y = Count, fill = Nativeness)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  theme_void() +
+  ggtitle("Proportion of Native vs Non-Native Species") +
+  theme(legend.title = element_blank()) +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            position = position_stack(vjust = 0.5), color = "white")
+
+ggplot(data %>% filter(!is.na(Nativeness)), aes(x = "", fill = Nativeness)) +
+  geom_bar(width = 1, position = "fill") +
+  coord_polar(theta = "y") +
+  theme_void() +
+  facet_wrap(~ ParkCode, scales = "free", ncol = 4) +
+  ggtitle("Native vs Non-Native Species by Park")
+
+````

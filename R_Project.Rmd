@@ -27,3 +27,19 @@ data
 
 ```
 
+
+```{r message=FALSE, warning=FALSE}
+
+status_counts <- data %>%
+  group_by(ParkCode, Occurrence) %>%
+  summarize(Count = n(), .groups = 'drop')
+
+ggplot(status_counts, aes(x = ParkCode, y = Count, fill = Occurrence)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_minimal() +
+  labs(title = "Species Occurence in the parks",
+       x = "Park",
+       y = "Proportion") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+````

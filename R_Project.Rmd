@@ -27,26 +27,3 @@ data
 
 ```
 
-```{r message=FALSE, warning=FALSE}
-
-rank_data <- data %>%
-  filter(!is.na(GRank), !is.na(SRank)) %>%
-  group_by(ParkCode) %>%
-  summarise(GRank_Count = n_distinct(GRank),
-            SRank_Count = n_distinct(SRank), .groups = 'drop')
-
-
-set.seed(123)
-rank_data$Cluster <- kmeans(scale(rank_data[, -1]), centers = 4)$cluster
-
-# Cluster visualization
-ggplot(rank_data, aes(x = GRank_Count, y = SRank_Count, color = as.factor(Cluster), label = ParkCode)) +
-  geom_point(size = 2, alpha = 0.7) +
-  geom_text(nudge_y = -15, size = 2) +
-  labs(title = "Clustering of Parks by GRank and SRank",
-       x = "Number of Unique GRanks",
-       y = "Number of Unique SRanks",
-       color = "Cluster") +
-  theme_minimal()
-
-````

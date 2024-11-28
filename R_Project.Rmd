@@ -27,3 +27,69 @@ data
 
 ```
 
+```{r message=FALSE, warning=FALSE}
+filtered_data <- data %>%
+  filter(GRank %in% c("G2", "G1", "GH"))
+
+# Count GRank occurrences by CategoryName and Order
+rank_counts <- filtered_data %>%
+  group_by(CategoryName, Order) %>%
+  summarise(Count = n(), .groups = "drop")
+
+# Identify the Order with the maximum count for each CategoryName
+top_orders <- rank_counts %>%
+  group_by(CategoryName) %>%
+  slice_max(Count, n = 1, with_ties = FALSE)
+
+# Plot the results
+ggplot(top_orders, aes(x = reorder(CategoryName, -Count), y = Count, fill = Order)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Top Orders by GRank Count per Category",
+    x = "Category Name",
+    y = "Count of GRank (G2, G1, GH)",
+    fill = "Order"
+  ) +
+  theme_minimal()
+
+
+````
+
+```{r message=FALSE, warning=FALSE}
+
+filtered_data <- data %>%
+  filter(GRank %in% c("G2", "G1", "GH"))
+
+
+rank_counts <- filtered_data %>%
+  group_by(CategoryName, Order) %>%
+  summarise(Count = n(), .groups = "drop")
+
+category_totals <- rank_counts %>%
+  group_by(CategoryName) %>%
+  summarise(Total = sum(Count), .groups = "drop")
+
+# Merge to calculate percentages
+rank_percentages <- rank_counts %>%
+  left_join(category_totals, by = "CategoryName") %>%
+  mutate(Percentage = (Count / Total) * 100)
+
+# Identify the Order with the maximum percentage for each CategoryName
+top_orders <- rank_percentages %>%
+  group_by(CategoryName) %>%
+  slice_max(Percentage, n = 1, with_ties = FALSE)
+
+# Plot the results
+ggplot(top_orders, aes(x = reorder(CategoryName, -Percentage), y = Percentage, fill = Order)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Top Orders by GRank Percentage per Category",
+    x = "Category Name",
+    y = "Percentage of GRank (G2, G1, GH)",
+    fill = "Order"
+  ) +
+  theme_minimal()
+
+````

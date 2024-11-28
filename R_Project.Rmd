@@ -66,16 +66,18 @@ rank_counts <- filtered_data %>%
   group_by(CategoryName, Order) %>%
   summarise(Count = n(), .groups = "drop")
 
+
 category_totals <- rank_counts %>%
   group_by(CategoryName) %>%
   summarise(Total = sum(Count), .groups = "drop")
 
-# Merge to calculate percentages
+category_totals
+
 rank_percentages <- rank_counts %>%
   left_join(category_totals, by = "CategoryName") %>%
   mutate(Percentage = (Count / Total) * 100)
 
-# Identify the Order with the maximum percentage for each CategoryName
+
 top_orders <- rank_percentages %>%
   group_by(CategoryName) %>%
   slice_max(Percentage, n = 1, with_ties = FALSE)

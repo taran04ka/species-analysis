@@ -89,13 +89,39 @@ species_by_location_graph <- species_by_location %>%
     x = NULL
   ) +
   theme(
-    plot.title.position = "plot",
+    plot.title = element_text(hjust = 0.5),
     axis.text.x = element_text(size = 8.5),
     legend.position = "none"
   ) +
-  scale_fill_brewer(palette = "YlGn") +
-  theme_minimal()
+  scale_fill_brewer(palette = "YlGn") 
 
 species_by_location_graph
   
+```
+
+```{r}
+most_referenced_historic_extirpated_species <- data %>%
+  filter(str_detect(ParkTags, "Park historic") & str_detect(ParkTags, "Park extirpated")) %>% 
+  arrange(desc(References)) %>% 
+  slice_head(n = 10) %>% 
+  mutate(
+    CommonNames = str_to_title(CommonNames),
+    CommonNames = factor(CommonNames, levels = CommonNames[order(References, decreasing = TRUE)])
+    )
+most_referenced_historic_extirpated_species
+
+most_referenced_historic_extirpated_species_boxplot <- most_referenced_historic_extirpated_species %>% 
+  ggplot(aes(x = References, fill = CommonNames)) +
+  geom_bar() +
+  labs(
+    title = "10 most referenced historic extirpated species\nin the Great Smoky Mountains National Park",
+    fill = "Species common names",
+    y = NULL
+  ) + 
+  theme(
+    plot.title.position = "plot",
+    plot.title = element_text(hjust = 0.5)
+  )
+
+most_referenced_historic_extirpated_species_boxplot
 ```

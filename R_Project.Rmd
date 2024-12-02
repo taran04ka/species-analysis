@@ -27,3 +27,30 @@ data
 
 ```
 
+```{r}
+# data %>% filter(str_detect(NativenessTags, "Cultivated"))
+
+cultivated_species <- data %>% 
+  filter(str_detect(NativenessTags, "Cultivated") & !is.na(Abundance))
+invasive_species
+
+cultivated_abundance_by_park_plot <- cultivated_species %>%
+  ggplot(aes(x = ParkName, fill = Abundance)) +
+  geom_dotplot() +
+  coord_flip() +
+  scale_y_continuous(
+    limits = c(0, 30),
+    breaks = seq(0, 30, 5)
+  ) +
+  labs(
+    title = "Amount and Abundance of Cultivated Species in Different Parks",
+    x = NULL,
+    y = NULL
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+
+cultivated_abundance_by_park_plot
+
+```

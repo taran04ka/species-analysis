@@ -2,7 +2,8 @@
 title: "R Project: National Parks Species"
 ---
 
-# libraries 
+# libraries
+
 ```{r}
 libs <- c("tidyverse", "tidytuesdayR", "scales", "dplyr", "stringr", "ggthemes", "RColorBrewer", "viridis")
 
@@ -30,6 +31,8 @@ data <- read_csv("species.csv")
 data
 
 ```
+
+## Amount of different species in the USA National Parks
 
 ```{r}
 # Amount of species in every park
@@ -61,6 +64,8 @@ barchart_species_amount <-
 barchart_species_amount
 ```
 
+## Observations by Species grouped in Family
+
 ```{r message=FALSE, warning=FALSE}
 
 ggplot(data, aes(x = CategoryName, y = Observations)) +
@@ -74,6 +79,10 @@ ggplot(data, aes(x = CategoryName, y = Observations)) +
   )
 
 ```
+
+## Proportion of Native vs Non-Native Species
+
+## Native vs Non-Native Species by Park
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -101,6 +110,8 @@ ggplot(data %>% filter(!is.na(Nativeness)), aes(x = "", fill = Nativeness)) +
   ggtitle("Native vs Non-Native Species by Park")
 
 ```
+
+## Average Amount of Different Evidence by Abundance Category
 
 ```{r}
 abundance_average_evidence <- 
@@ -142,6 +153,8 @@ barchart_abundance_evidence <-
 barchart_abundance_evidence
 ```
 
+## Number of Rare Species by National Park (G2, G1, GH)
+
 ```{r message=FALSE, warning=FALSE}
 
 rare_animals <- data %>%
@@ -159,6 +172,8 @@ ggplot(rare_animals, aes(x = reorder(ParkName, -RareSpeciesCount), y = RareSpeci
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 ```
+
+## Proportion of Spiders Feeding Strategies in the Great Smoky Mountains National Park
 
 ```{r}
 feeding_strategies_proportions <- data %>%
@@ -189,9 +204,14 @@ feeding_strategies_proportions_plot <- ggplot(feeding_strategies_proportions, ae
   ) +
   scale_fill_brewer(palette = "Set1") +
   theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
 
 feeding_strategies_proportions_plot
 ```
+
+## Amount of Different Species in Locations of Grand Canyon National Park
 
 ```{r}
 species_by_location <- data %>%
@@ -227,6 +247,8 @@ species_by_location_graph
   
 ```
 
+## 10 most referenced historic extirpated species in the Great Smoky Mountains National Park
+
 ```{r}
 most_referenced_historic_extirpated_species <- data %>%
   filter(str_detect(ParkTags, "Park historic") & str_detect(ParkTags, "Park extirpated")) %>% 
@@ -255,6 +277,8 @@ most_referenced_historic_extirpated_species_boxplot
 
 ```
 
+## Clustering of Parks by GRank and SRank
+
 ```{r message=FALSE, warning=FALSE}
 
 rank_data <- data %>%
@@ -279,6 +303,8 @@ ggplot(rank_data, aes(x = GRank_Count, y = SRank_Count, color = as.factor(Cluste
 
 ```
 
+## Count of Observations by Top 10 Orders (Most frequent animal orders)
+
 ```{r message=FALSE, warning=FALSE}
 
 top_orders <- data %>%
@@ -302,6 +328,8 @@ ggplot(filtered_data, aes(x = Order, fill = Order)) +
 
 ```
 
+## Species Occurence in the parks
+
 ```{r message=FALSE, warning=FALSE}
 
 status_counts <- data %>%
@@ -318,6 +346,7 @@ ggplot(status_counts, aes(x = ParkCode, y = Count, fill = Occurrence)) +
 
 ```
 
+## Species Occurence in the parks
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -334,6 +363,8 @@ ggplot(status_counts, aes(x = ParkCode, y = Count, fill = Abundance)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
 ```
+
+## Top Orders by GRank Count per Category
 
 ```{r message=FALSE, warning=FALSE}
 filtered_data <- data %>%
@@ -358,7 +389,11 @@ ggplot(top_orders, aes(x = reorder(CategoryName, -Count), y = Count, fill = Orde
     x = "Category Name",
     y = "Count of GRank (G2, G1, GH)",
     fill = "Order"
+  ) +
+  theme_minimal()
 ```
+
+## Top 10 Species by References-to-Observations Ratio
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -386,6 +421,8 @@ ggplot(top_ref_obs_ratio, aes(x = reorder(CommonNames, Ref_Obs_Ratio), y = Ref_O
   theme_minimal()
 
 ```
+
+## Top Orders by GRank Percentage per Category
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -427,6 +464,8 @@ ggplot(top_orders, aes(x = reorder(CategoryName, -Percentage), y = Percentage, f
 
 ```
 
+## Amount and Abundance of Cultivated Species in Different Parks
+
 ```{r}
 # data %>% filter(str_detect(NativenessTags, "Cultivated"))
 
@@ -454,6 +493,8 @@ cultivated_abundance_by_park_plot <- cultivated_species %>%
 cultivated_abundance_by_park_plot
 
 ```
+
+## Relation of Winter, Summer, and Whole Year Birds by Park
 
 ```{r}
 bird_data <- data %>% 
@@ -495,6 +536,8 @@ season_birds_by_park_plot <-
 season_birds_by_park_plot
 ```
 
+## Relation Between Vagrants and Residents by Category
+
 ```{r}
 vagrant_vs_resident_by_category_data <- data %>%
   mutate(
@@ -528,6 +571,8 @@ vagrant_vs_resident_by_category_plot <-
 
 vagrant_vs_resident_by_category_plot
 ```
+
+## Relationship Between Observations and Vouchers
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -563,6 +608,8 @@ ggplot(filtered_data, aes(x = Vouchers, y = Observations, color = Relation)) +
   scale_y_log10() 
 ```
 
+## Percentage of Categories: Observations vs Vouchers
+
 ```{r message=FALSE, warning=FALSE}
 
 pie_data <- filtered_data %>%
@@ -595,6 +642,8 @@ ggplot(pie_data, aes(x = "", y = Percentage, fill = Relation)) +
   )
 
 ```
+
+## Top 10 Species by Observations-to-Vouchers Ratio
 
 ```{r message=FALSE, warning=FALSE}
 

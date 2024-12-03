@@ -4,7 +4,7 @@ title: "R Project: National Parks Species"
 
 # libraries 
 ```{r}
-libs <- c("tidyverse", "tidytuesdayR", "scales")
+libs <- c("tidyverse", "tidytuesdayR", "scales", "ggthemes", "RColorBrewer")
 
 installed_libs <- libs %in% rownames(installed.packages())
 if (any(installed_libs == F)) {
@@ -18,12 +18,60 @@ if (any(installed_libs == F)) {
 library(tidyverse)
 library(tidytuesdayR)
 library(scales)
+library(ggthemes)
+library(RColorBrewer)
 ```
 
 ```{r message=FALSE, warning=FALSE}
 data <- read_csv("species.csv")
 
 data
+
+```
+
+```{r}
+# Amount of species in every park
+species_amount <- 
+  data %>% 
+    filter(Occurrence %in% c("Present", "Probably Present")) %>%   
+    group_by(ParkName) %>% 
+    distinct(SciName, .keep_all = TRUE) %>%
+    ungroup()
+
+species_amount
+```
+
+```{r}
+barchart_species_amount <-
+  ggplot(data = species_amount, aes(x = ParkCode, fill = CategoryName, colour = CategoryName)) +
+  geom_bar() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Amount of different species in the USA National Parks",
+    x = "National Park Code",
+    y = "Number of Species",
+    fill = "Category Name"
+  ) +
+  guides(
+    color = "none"
+  ) +
+  scale_fill_viridis_d(option = "viridis")
+
+barchart_species_amount
+```
+
+```{r message=FALSE, warning=FALSE}
+
+ggplot(data, aes(x = CategoryName, y = Observations)) +
+  geom_jitter(width = 0.3, height = 0, color = "forestgreen", alpha = 0.6) +
+  theme_minimal() +
+  coord_flip() +
+  labs(
+    title = "Observations by Species grouped in Family",
+    x = "Family",
+    y = "Number of Observations"
+  )
 
 ```
 
@@ -54,3 +102,43 @@ ggplot(data %>% filter(!is.na(Nativeness)), aes(x = "", fill = Nativeness)) +
   ggtitle("Native vs Non-Native Species by Park")
 
 ````
+
+```{r}
+abundance_average_evidence <- 
+  data %>% 
+    filter(!is.na(Abundance)) %>% 
+    group_by(Abundance) %>% 
+    summarise(
+      AverageReferences = mean(References), 
+      AverageObservations = mean(Observations),
+      AverageVouchers = mean(Vouchers),
+      .groups = "drop"
+    )
+
+abundance_average_evidence
+
+abundance_average_evidence_long <- abundance_average_evidence %>%
+  pivot_longer(cols = starts_with("Average"), 
+               names_to = "Variable", 
+               values_to = "Value")
+
+barchart_abundance_evidence <- 
+  ggplot(abundance_average_evidence_long, aes(x = Abundance, y = Value, fill = Variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Value, 1)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5,
+            hjust = 0.5) +
+  scale_fill_discrete(labels = c("AverageReferences" = "References", 
+                                "AverageObservations" = "Observations", 
+                                "AverageVouchers" = "Vouchers")) + 
+  labs(
+    title = "Average Amount of Different Evidence by Abundance Category",
+    x = "Abundance Category",
+    y = "Average Value",
+    fill = "Kind of Evidence"
+  ) +
+  theme_minimal()
+
+barchart_abundance_evidence
+```

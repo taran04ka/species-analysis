@@ -60,6 +60,19 @@ barchart_species_amount <-
 
 barchart_species_amount
 ```
+```{r message=FALSE, warning=FALSE}
+
+ggplot(data, aes(x = CategoryName, y = Observations)) +
+  geom_jitter(width = 0.3, height = 0, color = "forestgreen", alpha = 0.6) +
+  theme_minimal() +
+  coord_flip() +
+  labs(
+    title = "Observations by Species grouped in Family",
+    x = "Family",
+    y = "Number of Observations"
+  )
+
+```
 
 ```{r}
 abundance_average_evidence <- 

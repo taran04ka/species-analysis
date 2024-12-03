@@ -281,3 +281,27 @@ ggplot(rank_data, aes(x = GRank_Count, y = SRank_Count, color = as.factor(Cluste
   theme_minimal()
 
 ````
+
+```{r message=FALSE, warning=FALSE}
+
+top_orders <- data %>%
+  filter(CategoryName %in% c("Mammal", "Bird", "Reptile", "Amphibian", "Fish"), 
+         !is.na(Order)) %>%
+  count(Order, sort = TRUE) %>%
+  top_n(10, n) %>%
+  pull(Order)
+
+filtered_data <- data %>%
+  filter(Order %in% top_orders, CategoryName %in% c("Mammal", "Bird", "Reptile", "Amphibian", "Fish"))
+
+ggplot(filtered_data, aes(x = Order, fill = Order)) +
+  geom_bar() +
+  labs(title = "Count of Observations by Top 10 Orders (Most frequent animal orders)",
+       x = "Order",
+       y = "Number of Observations",
+       fill = "Order") +
+  theme_minimal() +
+  coord_flip() 
+
+
+````

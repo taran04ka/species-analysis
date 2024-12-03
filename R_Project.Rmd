@@ -28,23 +28,6 @@ data <- read_csv("species.csv")
 data
 
 ```
-```{r message=FALSE, warning=FALSE}
-
-rare_animals <- data %>%
-  filter(GRank %in% c("G1","G2", "GH")) %>%
-  group_by(ParkName) %>%
-  summarise(RareSpeciesCount = n()) %>%
-  arrange(desc(RareSpeciesCount))
-
-ggplot(rare_animals, aes(x = reorder(ParkName, -RareSpeciesCount), y = RareSpeciesCount)) +
-  geom_bar(stat = "identity", fill = "darkred") +
-  theme_minimal() +
-  ggtitle("Number of Rare Species by National Park (G2, G1, GH)") +
-  xlab("National Park") +
-  ylab("Count of Rare Species") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
-
-```
 
 ```{r}
 # Amount of species in every park
@@ -56,9 +39,7 @@ species_amount <-
     ungroup()
 
 species_amount
-```
 
-```{r}
 barchart_species_amount <-
   ggplot(data = species_amount, aes(x = ParkCode, fill = CategoryName, colour = CategoryName)) +
   geom_bar() +
@@ -118,7 +99,7 @@ ggplot(data %>% filter(!is.na(Nativeness)), aes(x = "", fill = Nativeness)) +
   facet_wrap(~ ParkCode, scales = "free", ncol = 4) +
   ggtitle("Native vs Non-Native Species by Park")
 
-````
+```
 
 ```{r}
 abundance_average_evidence <- 
@@ -158,4 +139,22 @@ barchart_abundance_evidence <-
   theme_minimal()
 
 barchart_abundance_evidence
+```
+
+```{r message=FALSE, warning=FALSE}
+
+rare_animals <- data %>%
+  filter(GRank %in% c("G1","G2", "GH")) %>%
+  group_by(ParkName) %>%
+  summarise(RareSpeciesCount = n()) %>%
+  arrange(desc(RareSpeciesCount))
+
+ggplot(rare_animals, aes(x = reorder(ParkName, -RareSpeciesCount), y = RareSpeciesCount)) +
+  geom_bar(stat = "identity", fill = "darkred") +
+  theme_minimal() +
+  ggtitle("Number of Rare Species by National Park (G2, G1, GH)") +
+  xlab("National Park") +
+  ylab("Count of Rare Species") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
 ```

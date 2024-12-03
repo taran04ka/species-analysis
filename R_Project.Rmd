@@ -4,7 +4,7 @@ title: "R Project: National Parks Species"
 
 # libraries 
 ```{r}
-libs <- c("tidyverse", "tidytuesdayR", "scales", "dplyr", "stringr", "viridis")
+libs <- c("tidyverse", "tidytuesdayR", "scales", "dplyr", "stringr", "ggthemes", "RColorBrewer", "viridis")
 
 installed_libs <- libs %in% rownames(installed.packages())
 if (any(installed_libs == F)) {
@@ -21,6 +21,7 @@ library(scales)
 library(dplyr)
 library(stringr)
 library(ggthemes)
+library(RColorBrewer)
 ```
 
 ```{r message=FALSE, warning=FALSE}
@@ -30,41 +31,6 @@ data
 
 ```
 
-```{r}
-feeding_strategies_proportions <- data %>%
-  filter(str_detect(ParkTags, "Habit:") & str_detect(ParkTags, "Arachnid")) %>%
-  mutate(Habit = str_extract(ParkTags, "Habit: [^;]+")) %>% # Extract "Habit:" value
-  mutate(Habit = str_remove(Habit, "Habit: ")) %>% # Remove "Habit:" prefix
-  separate_rows(Habit, sep = "[,\\s]+") %>% # Split on spaces or commas
-  group_by(SciName) %>%
-  summarise(Habit = paste(Habit, collapse = ", ")) %>% # Combine all habits per SciName
-  mutate(FeedingStrategy = case_when(
-    str_detect(Habit, "Hunter") & str_detect(Habit, "Web-Builder") ~ "Both",
-    str_detect(Habit, "Hunter") ~ "Hunter",
-    str_detect(Habit, "Web-Builder") ~ "Web-Builder"
-  )) %>%
-  filter(!is.na(FeedingStrategy)) %>% 
-  group_by(FeedingStrategy) %>%
-  summarise(Count = n(), .groups = "drop") %>%
-  mutate(Proportion = Count / sum(Count))
-
-feeding_strategies_proportions
-
-feeding_strategies_proportions_plot <- ggplot(feeding_strategies_proportions, aes(x = "", y = Proportion, fill = FeedingStrategy)) +
-  geom_bar(stat = "identity", alpha = 0.8, width = 1) +
-  coord_polar(theta = "y") +
-  labs(
-    title = "Proportion of Spiders Feeding Strategies \nin the Great Smoky Mountains National Park",
-    fill = NULL
-  ) +
-  scale_fill_brewer(palette = "Set1") +
-  theme_void() +
-  theme(
-    plot.title = element_text(hjust = 0.5)
-  )
-
-feeding_strategies_proportions_plot
-```
 ```{r}
 species_by_location <- data %>%
   filter(str_detect(ParkTags, "Geographic Regions:") & ParkCode == "GRCA") %>%
@@ -124,4 +90,170 @@ most_referenced_historic_extirpated_species_boxplot <- most_referenced_historic_
   )
 
 most_referenced_historic_extirpated_species_boxplot
+
+```
+
+```{r}
+# Amount of species in every park
+species_amount <- 
+  data %>% 
+    filter(Occurrence %in% c("Present", "Probably Present")) %>%   
+    group_by(ParkName) %>% 
+    distinct(SciName, .keep_all = TRUE) %>%
+    ungroup()
+
+species_amount
+
+barchart_species_amount <-
+  ggplot(data = species_amount, aes(x = ParkCode, fill = CategoryName, colour = CategoryName)) +
+  geom_bar() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Amount of different species in the USA National Parks",
+    x = "National Park Code",
+    y = "Number of Species",
+    fill = "Category Name"
+  ) +
+  guides(
+    color = "none"
+  ) +
+  scale_fill_viridis_d(option = "viridis")
+
+barchart_species_amount
+```
+
+```{r message=FALSE, warning=FALSE}
+
+ggplot(data, aes(x = CategoryName, y = Observations)) +
+  geom_jitter(width = 0.3, height = 0, color = "forestgreen", alpha = 0.6) +
+  theme_minimal() +
+  coord_flip() +
+  labs(
+    title = "Observations by Species grouped in Family",
+    x = "Family",
+    y = "Number of Observations"
+  )
+
+```
+
+```{r message=FALSE, warning=FALSE}
+
+nativeness_count <- data %>%
+  filter(!is.na(Nativeness)) %>% 
+  group_by(Nativeness) %>%
+  summarise(Count = n()) %>%
+  mutate(Percentage = Count / sum(Count) * 100)
+
+# Pie chart
+ggplot(nativeness_count, aes(x = "", y = Count, fill = Nativeness)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  theme_void() +
+  ggtitle("Proportion of Native vs Non-Native Species") +
+  theme(legend.title = element_blank()) +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            position = position_stack(vjust = 0.5), color = "white")
+
+ggplot(data %>% filter(!is.na(Nativeness)), aes(x = "", fill = Nativeness)) +
+  geom_bar(width = 1, position = "fill") +
+  coord_polar(theta = "y") +
+  theme_void() +
+  facet_wrap(~ ParkCode, scales = "free", ncol = 4) +
+  ggtitle("Native vs Non-Native Species by Park")
+
+```
+
+```{r}
+abundance_average_evidence <- 
+  data %>% 
+    filter(!is.na(Abundance)) %>% 
+    group_by(Abundance) %>% 
+    summarise(
+      AverageReferences = mean(References), 
+      AverageObservations = mean(Observations),
+      AverageVouchers = mean(Vouchers),
+      .groups = "drop"
+    )
+
+abundance_average_evidence
+
+abundance_average_evidence_long <- abundance_average_evidence %>%
+  pivot_longer(cols = starts_with("Average"), 
+               names_to = "Variable", 
+               values_to = "Value")
+
+barchart_abundance_evidence <- 
+  ggplot(abundance_average_evidence_long, aes(x = Abundance, y = Value, fill = Variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Value, 1)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5,
+            hjust = 0.5) +
+  scale_fill_discrete(labels = c("AverageReferences" = "References", 
+                                "AverageObservations" = "Observations", 
+                                "AverageVouchers" = "Vouchers")) + 
+  labs(
+    title = "Average Amount of Different Evidence by Abundance Category",
+    x = "Abundance Category",
+    y = "Average Value",
+    fill = "Kind of Evidence"
+  ) +
+  theme_minimal()
+
+barchart_abundance_evidence
+```
+
+```{r message=FALSE, warning=FALSE}
+
+rare_animals <- data %>%
+  filter(GRank %in% c("G1","G2", "GH")) %>%
+  group_by(ParkName) %>%
+  summarise(RareSpeciesCount = n()) %>%
+  arrange(desc(RareSpeciesCount))
+
+ggplot(rare_animals, aes(x = reorder(ParkName, -RareSpeciesCount), y = RareSpeciesCount)) +
+  geom_bar(stat = "identity", fill = "darkred") +
+  theme_minimal() +
+  ggtitle("Number of Rare Species by National Park (G2, G1, GH)") +
+  xlab("National Park") +
+  ylab("Count of Rare Species") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+```{r}
+feeding_strategies_proportions <- data %>%
+  filter(str_detect(ParkTags, "Habit:") & str_detect(ParkTags, "Arachnid")) %>%
+  mutate(Habit = str_extract(ParkTags, "Habit: [^;]+")) %>% # Extract "Habit:" value
+  mutate(Habit = str_remove(Habit, "Habit: ")) %>% # Remove "Habit:" prefix
+  separate_rows(Habit, sep = "[,\\s]+") %>% # Split on spaces or commas
+  group_by(SciName) %>%
+  summarise(Habit = paste(Habit, collapse = ", ")) %>% # Combine all habits per SciName
+  mutate(FeedingStrategy = case_when(
+    str_detect(Habit, "Hunter") & str_detect(Habit, "Web-Builder") ~ "Both",
+    str_detect(Habit, "Hunter") ~ "Hunter",
+    str_detect(Habit, "Web-Builder") ~ "Web-Builder"
+  )) %>%
+  filter(!is.na(FeedingStrategy)) %>% 
+  group_by(FeedingStrategy) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  mutate(Proportion = Count / sum(Count))
+
+feeding_strategies_proportions
+
+feeding_strategies_proportions_plot <- ggplot(feeding_strategies_proportions, aes(x = "", y = Proportion, fill = FeedingStrategy)) +
+  geom_bar(stat = "identity", alpha = 0.8, width = 1) +
+  coord_polar(theta = "y") +
+  labs(
+    title = "Proportion of Spiders Feeding Strategies \nin the Great Smoky Mountains National Park",
+    fill = NULL
+  ) +
+  scale_fill_brewer(palette = "Set1") +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+
+feeding_strategies_proportions_plot
 ```

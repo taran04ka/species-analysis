@@ -4,7 +4,7 @@ title: "R Project: National Parks Species"
 
 # libraries 
 ```{r}
-libs <- c("tidyverse", "tidytuesdayR", "scales")
+libs <- c("tidyverse", "tidytuesdayR", "scales", "dplyr", "stringr", "ggthemes", "RColorBrewer", "viridis")
 
 installed_libs <- libs %in% rownames(installed.packages())
 if (any(installed_libs == F)) {
@@ -18,12 +18,389 @@ if (any(installed_libs == F)) {
 library(tidyverse)
 library(tidytuesdayR)
 library(scales)
+library(dplyr)
+library(stringr)
+library(ggthemes)
+library(RColorBrewer)
 ```
 
 ```{r message=FALSE, warning=FALSE}
 data <- read_csv("species.csv")
 
 data
+
+```
+
+```{r}
+# Amount of species in every park
+species_amount <- 
+  data %>% 
+    filter(Occurrence %in% c("Present", "Probably Present")) %>%   
+    group_by(ParkName) %>% 
+    distinct(SciName, .keep_all = TRUE) %>%
+    ungroup()
+
+species_amount
+
+barchart_species_amount <-
+  ggplot(data = species_amount, aes(x = ParkCode, fill = CategoryName, colour = CategoryName)) +
+  geom_bar() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Amount of different species in the USA National Parks",
+    x = "National Park Code",
+    y = "Number of Species",
+    fill = "Category Name"
+  ) +
+  guides(
+    color = "none"
+  ) +
+  scale_fill_viridis_d(option = "viridis")
+
+barchart_species_amount
+```
+
+```{r message=FALSE, warning=FALSE}
+
+ggplot(data, aes(x = CategoryName, y = Observations)) +
+  geom_jitter(width = 0.3, height = 0, color = "forestgreen", alpha = 0.6) +
+  theme_minimal() +
+  coord_flip() +
+  labs(
+    title = "Observations by Species grouped in Family",
+    x = "Family",
+    y = "Number of Observations"
+  )
+
+```
+
+```{r message=FALSE, warning=FALSE}
+
+nativeness_count <- data %>%
+  filter(!is.na(Nativeness)) %>% 
+  group_by(Nativeness) %>%
+  summarise(Count = n()) %>%
+  mutate(Percentage = Count / sum(Count) * 100)
+
+# Pie chart
+ggplot(nativeness_count, aes(x = "", y = Count, fill = Nativeness)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  theme_void() +
+  ggtitle("Proportion of Native vs Non-Native Species") +
+  theme(legend.title = element_blank()) +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            position = position_stack(vjust = 0.5), color = "white")
+
+ggplot(data %>% filter(!is.na(Nativeness)), aes(x = "", fill = Nativeness)) +
+  geom_bar(width = 1, position = "fill") +
+  coord_polar(theta = "y") +
+  theme_void() +
+  facet_wrap(~ ParkCode, scales = "free", ncol = 4) +
+  ggtitle("Native vs Non-Native Species by Park")
+
+```
+
+```{r}
+abundance_average_evidence <- 
+  data %>% 
+    filter(!is.na(Abundance)) %>% 
+    group_by(Abundance) %>% 
+    summarise(
+      AverageReferences = mean(References), 
+      AverageObservations = mean(Observations),
+      AverageVouchers = mean(Vouchers),
+      .groups = "drop"
+    )
+
+abundance_average_evidence
+
+abundance_average_evidence_long <- abundance_average_evidence %>%
+  pivot_longer(cols = starts_with("Average"), 
+               names_to = "Variable", 
+               values_to = "Value")
+
+barchart_abundance_evidence <- 
+  ggplot(abundance_average_evidence_long, aes(x = Abundance, y = Value, fill = Variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Value, 1)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5,
+            hjust = 0.5) +
+  scale_fill_discrete(labels = c("AverageReferences" = "References", 
+                                "AverageObservations" = "Observations", 
+                                "AverageVouchers" = "Vouchers")) + 
+  labs(
+    title = "Average Amount of Different Evidence by Abundance Category",
+    x = "Abundance Category",
+    y = "Average Value",
+    fill = "Kind of Evidence"
+  ) +
+  theme_minimal()
+
+barchart_abundance_evidence
+```
+
+```{r message=FALSE, warning=FALSE}
+
+rare_animals <- data %>%
+  filter(GRank %in% c("G1","G2", "GH")) %>%
+  group_by(ParkName) %>%
+  summarise(RareSpeciesCount = n()) %>%
+  arrange(desc(RareSpeciesCount))
+
+ggplot(rare_animals, aes(x = reorder(ParkName, -RareSpeciesCount), y = RareSpeciesCount)) +
+  geom_bar(stat = "identity", fill = "darkred") +
+  theme_minimal() +
+  ggtitle("Number of Rare Species by National Park (G2, G1, GH)") +
+  xlab("National Park") +
+  ylab("Count of Rare Species") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+```{r}
+feeding_strategies_proportions <- data %>%
+  filter(str_detect(ParkTags, "Habit:") & str_detect(ParkTags, "Arachnid")) %>%
+  mutate(Habit = str_extract(ParkTags, "Habit: [^;]+")) %>% # Extract "Habit:" value
+  mutate(Habit = str_remove(Habit, "Habit: ")) %>% # Remove "Habit:" prefix
+  separate_rows(Habit, sep = "[,\\s]+") %>% # Split on spaces or commas
+  group_by(SciName) %>%
+  summarise(Habit = paste(Habit, collapse = ", ")) %>% # Combine all habits per SciName
+  mutate(FeedingStrategy = case_when(
+    str_detect(Habit, "Hunter") & str_detect(Habit, "Web-Builder") ~ "Both",
+    str_detect(Habit, "Hunter") ~ "Hunter",
+    str_detect(Habit, "Web-Builder") ~ "Web-Builder"
+  )) %>%
+  filter(!is.na(FeedingStrategy)) %>% 
+  group_by(FeedingStrategy) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  mutate(Proportion = Count / sum(Count))
+
+feeding_strategies_proportions
+
+feeding_strategies_proportions_plot <- ggplot(feeding_strategies_proportions, aes(x = "", y = Proportion, fill = FeedingStrategy)) +
+  geom_bar(stat = "identity", alpha = 0.8, width = 1) +
+  coord_polar(theta = "y") +
+  labs(
+    title = "Proportion of Spiders Feeding Strategies \nin the Great Smoky Mountains National Park",
+    fill = NULL
+  ) +
+  scale_fill_brewer(palette = "Set1") +
+  theme_void() +
+
+feeding_strategies_proportions_plot
+```
+
+```{r}
+species_by_location <- data %>%
+  filter(str_detect(ParkTags, "Geographic Regions:") & ParkCode == "GRCA") %>%
+  mutate(Region = str_extract(ParkTags, "Geographic Regions: [^;]+")) %>%
+  mutate(Region = str_remove(Region, "Geographic Regions: ")) %>% 
+  separate_rows(Region, sep = ",") %>% 
+  mutate(Region = str_squish(Region)) %>% 
+  group_by(Region) %>%
+  summarise(Count = n(), .groups = "drop") %>% 
+  arrange(Count) %>%
+  mutate(Region = factor(Region, levels = Region))
+
+species_by_location
+
+species_by_location_graph <- species_by_location %>% 
+  ggplot(aes(x = Region, y = Count, fill = Region)) +
+  geom_col() +
+  geom_text(aes(label = Count), vjust = -0.5, size = 3.5) +
+  labs(
+    title = "Amount of Different Species in Locations of Grand Canyon National Park",
+    y = NULL,
+    x = NULL
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(size = 8.5),
+    legend.position = "none"
+  ) +
+  scale_fill_brewer(palette = "YlGn") 
+
+species_by_location_graph
+  
+```
+
+```{r}
+most_referenced_historic_extirpated_species <- data %>%
+  filter(str_detect(ParkTags, "Park historic") & str_detect(ParkTags, "Park extirpated")) %>% 
+  arrange(desc(References)) %>% 
+  slice_head(n = 10) %>% 
+  mutate(
+    CommonNames = str_to_title(CommonNames),
+    CommonNames = factor(CommonNames, levels = CommonNames[order(References, decreasing = TRUE)])
+    )
+most_referenced_historic_extirpated_species
+
+most_referenced_historic_extirpated_species_boxplot <- most_referenced_historic_extirpated_species %>% 
+  ggplot(aes(x = References, fill = CommonNames)) +
+  geom_bar() +
+  labs(
+    title = "10 most referenced historic extirpated species\nin the Great Smoky Mountains National Park",
+    fill = "Species common names",
+    y = NULL
+  ) + 
+  theme(
+    plot.title.position = "plot",
+    plot.title = element_text(hjust = 0.5)
+  )
+
+most_referenced_historic_extirpated_species_boxplot
+
+```
+
+```{r message=FALSE, warning=FALSE}
+
+rank_data <- data %>%
+  filter(!is.na(GRank), !is.na(SRank)) %>%
+  group_by(ParkCode) %>%
+  summarise(GRank_Count = n_distinct(GRank),
+            SRank_Count = n_distinct(SRank), .groups = 'drop')
+
+
+set.seed(123)
+rank_data$Cluster <- kmeans(scale(rank_data[, -1]), centers = 4)$cluster
+
+# Cluster visualization
+ggplot(rank_data, aes(x = GRank_Count, y = SRank_Count, color = as.factor(Cluster), label = ParkCode)) +
+  geom_point(size = 2, alpha = 0.7) +
+  geom_text(nudge_y = -15, size = 2) +
+  labs(title = "Clustering of Parks by GRank and SRank",
+       x = "Number of Unique GRanks",
+       y = "Number of Unique SRanks",
+       color = "Cluster") +
+  theme_minimal()
+
+```
+
+```{r message=FALSE, warning=FALSE}
+
+top_orders <- data %>%
+  filter(CategoryName %in% c("Mammal", "Bird", "Reptile", "Amphibian", "Fish"), 
+         !is.na(Order)) %>%
+  count(Order, sort = TRUE) %>%
+  top_n(10, n) %>%
+  pull(Order)
+
+filtered_data <- data %>%
+  filter(Order %in% top_orders, CategoryName %in% c("Mammal", "Bird", "Reptile", "Amphibian", "Fish"))
+
+ggplot(filtered_data, aes(x = Order, fill = Order)) +
+  geom_bar() +
+  labs(title = "Count of Observations by Top 10 Orders (Most frequent animal orders)",
+       x = "Order",
+       y = "Number of Observations",
+       fill = "Order") +
+  theme_minimal() +
+  coord_flip() 
+
+```
+
+```{r message=FALSE, warning=FALSE}
+
+status_counts <- data %>%
+  group_by(ParkCode, Occurrence) %>%
+  summarize(Count = n(), .groups = 'drop')
+
+ggplot(status_counts, aes(x = ParkCode, y = Count, fill = Occurrence)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_minimal() +
+  labs(title = "Species Occurence in the parks",
+       x = "Park",
+       y = "Proportion") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+
+status_counts <- data %>%
+  group_by(ParkCode, Abundance) %>%
+  summarize(Count = n(), .groups = 'drop')
+
+ggplot(status_counts, aes(x = ParkCode, y = Count, fill = Abundance)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_minimal() +
+  labs(title = "Species Occurence in the parks",
+       x = "Park",
+       y = "Proportion") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+```
+
+```{r message=FALSE, warning=FALSE}
+filtered_data <- data %>%
+  filter(GRank %in% c("G2", "G1", "GH"))
+
+# Count GRank occurrences by CategoryName and Order
+rank_counts <- filtered_data %>%
+  group_by(CategoryName, Order) %>%
+  summarise(Count = n(), .groups = "drop")
+
+# Identify the Order with the maximum count for each CategoryName
+top_orders <- rank_counts %>%
+  group_by(CategoryName) %>%
+  slice_max(Count, n = 1, with_ties = FALSE)
+
+# Plot the results
+ggplot(top_orders, aes(x = reorder(CategoryName, -Count), y = Count, fill = Order)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Top Orders by GRank Count per Category",
+    x = "Category Name",
+    y = "Count of GRank (G2, G1, GH)",
+    fill = "Order"
+  ) +
+  theme_minimal()
+
+
+```
+
+```{r message=FALSE, warning=FALSE}
+
+filtered_data <- data %>%
+  filter(GRank %in% c("G2", "G1", "GH"))
+
+
+rank_counts <- filtered_data %>%
+  group_by(CategoryName, Order) %>%
+  summarise(Count = n(), .groups = "drop")
+
+
+category_totals <- rank_counts %>%
+  group_by(CategoryName) %>%
+  summarise(Total = sum(Count), .groups = "drop")
+
+category_totals
+
+rank_percentages <- rank_counts %>%
+  left_join(category_totals, by = "CategoryName") %>%
+  mutate(Percentage = (Count / Total) * 100)
+
+
+top_orders <- rank_percentages %>%
+  group_by(CategoryName) %>%
+  slice_max(Percentage, n = 1, with_ties = FALSE)
+
+# Plot the results
+ggplot(top_orders, aes(x = reorder(CategoryName, -Percentage), y = Percentage, fill = Order)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Top Orders by GRank Percentage per Category",
+    x = "Category Name",
+    y = "Percentage of GRank (G2, G1, GH)",
+    fill = "Order"
+  ) +
+  theme_minimal()
 
 ```
 

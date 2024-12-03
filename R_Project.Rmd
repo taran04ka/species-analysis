@@ -60,3 +60,43 @@ barchart_species_amount <-
 
 barchart_species_amount
 ```
+
+```{r}
+abundance_average_evidence <- 
+  data %>% 
+    filter(!is.na(Abundance)) %>% 
+    group_by(Abundance) %>% 
+    summarise(
+      AverageReferences = mean(References), 
+      AverageObservations = mean(Observations),
+      AverageVouchers = mean(Vouchers),
+      .groups = "drop"
+    )
+
+abundance_average_evidence
+
+abundance_average_evidence_long <- abundance_average_evidence %>%
+  pivot_longer(cols = starts_with("Average"), 
+               names_to = "Variable", 
+               values_to = "Value")
+
+barchart_abundance_evidence <- 
+  ggplot(abundance_average_evidence_long, aes(x = Abundance, y = Value, fill = Variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Value, 1)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5,
+            hjust = 0.5) +
+  scale_fill_discrete(labels = c("AverageReferences" = "References", 
+                                "AverageObservations" = "Observations", 
+                                "AverageVouchers" = "Vouchers")) + 
+  labs(
+    title = "Average Amount of Different Evidence by Abundance Category",
+    x = "Abundance Category",
+    y = "Average Value",
+    fill = "Kind of Evidence"
+  ) +
+  theme_minimal()
+
+barchart_abundance_evidence
+```

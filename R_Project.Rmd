@@ -358,9 +358,32 @@ ggplot(top_orders, aes(x = reorder(CategoryName, -Count), y = Count, fill = Orde
     x = "Category Name",
     y = "Count of GRank (G2, G1, GH)",
     fill = "Order"
+```
+
+```{r message=FALSE, warning=FALSE}
+
+# Calculate References-to-Observations and Vouchers-to-Observations ratios
+ratio_data <- filtered_data %>%
+  mutate(
+    Ref_Obs_Ratio = References / Observations
+  ) %>%
+  filter(Observations > 0)  # Ensure there are observations to calculate the ratios
+
+# Top 10 species by References-to-Observations ratio
+top_ref_obs_ratio <- ratio_data %>%
+  arrange(desc(Ref_Obs_Ratio)) %>%
+  slice_head(n = 10)
+
+# Bar chart for top 10 species by References-to-Observations ratio
+ggplot(top_ref_obs_ratio, aes(x = reorder(CommonNames, Ref_Obs_Ratio), y = Ref_Obs_Ratio)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Species by References-to-Observations Ratio",
+    x = "Species (Common Name)",
+    y = "References-to-Observations Ratio"
   ) +
   theme_minimal()
-
 
 ```
 
@@ -504,4 +527,85 @@ vagrant_vs_resident_by_category_plot <-
     )
 
 vagrant_vs_resident_by_category_plot
+```
+
+```{r message=FALSE, warning=FALSE}
+
+filtered_data <- data %>%
+  filter(Observations > 0) %>%
+  filter(Vouchers > 0) %>%
+  mutate(
+    Relation = case_when(
+      Vouchers == Observations ~ "Equal",
+      Observations > Vouchers ~ "More Observations",
+      TRUE ~ "More Vouchers"
+    )
+  )
+
+# Create scatterplot with grouped colors and logarithmic axes
+ggplot(filtered_data, aes(x = Vouchers, y = Observations, color = Relation)) +
+  geom_point(alpha = 0.7) +
+  labs(
+    title = "Relationship Between Observations and Vouchers",
+    x = "Number of Vouchers (Log Scale)",
+    y = "Number of Observations (Log Scale)",
+    color = "Relation"
+  ) +
+  theme_minimal() +
+  scale_color_manual(
+    values = c(
+      "Equal" = "purple",
+      "More Observations" = "green",
+      "More Vouchers" = "orange"
+    )
+  ) +
+  scale_x_log10() +  
+  scale_y_log10() 
+```
+
+```{r message=FALSE, warning=FALSE}
+
+pie_data <- filtered_data %>%
+  group_by(Relation) %>%
+  summarize(Count = n()) %>%
+  mutate(Percentage = Count / sum(Count) * 100,
+         Label = paste0(round(Percentage, 1), "%"))  # Create labels with percentages
+
+# Create pie chart with percentage labels
+ggplot(pie_data, aes(x = "", y = Percentage, fill = Relation)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  geom_text(aes(label = Label), position = position_stack(vjust = 0.5), size = 4) +  # Add percentage labels
+  labs(
+    title = "Percentage of Categories: Observations vs Vouchers",
+    fill = "Relation"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Equal" = "purple",
+      "More Observations" = "green",
+      "More Vouchers" = "orange"
+    )
+  )
+
+```
+
+```{r message=FALSE, warning=FALSE}
+
+ggplot(ratio_data, aes(x = reorder(CommonNames, Obs_Vouchers_Ratio), y = Obs_Vouchers_Ratio)) +
+  geom_bar(stat = "identity", fill = "steelblue") +  # Use a single color
+  coord_flip() +  # Flip axes for better readability
+  labs(
+    title = "Top 10 Species by Observations-to-Vouchers Ratio",
+    x = "Species (Common Name)",
+    y = "Observations-to-Vouchers Ratio"
+      ) +
+  theme_minimal()
+  
 ```

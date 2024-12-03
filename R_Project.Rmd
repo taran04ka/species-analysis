@@ -4,7 +4,7 @@ title: "R Project: National Parks Species"
 
 # libraries 
 ```{r}
-libs <- c("tidyverse", "tidytuesdayR", "scales", "ggthemes", "RColorBrewer")
+libs <- c("tidyverse", "tidytuesdayR", "scales", "dplyr", "stringr", "ggthemes", "RColorBrewer", "viridis")
 
 installed_libs <- libs %in% rownames(installed.packages())
 if (any(installed_libs == F)) {
@@ -18,6 +18,8 @@ if (any(installed_libs == F)) {
 library(tidyverse)
 library(tidytuesdayR)
 library(scales)
+library(dplyr)
+library(stringr)
 library(ggthemes)
 library(RColorBrewer)
 ```
@@ -26,6 +28,68 @@ library(RColorBrewer)
 data <- read_csv("species.csv")
 
 data
+
+```
+
+```{r}
+species_by_location <- data %>%
+  filter(str_detect(ParkTags, "Geographic Regions:") & ParkCode == "GRCA") %>%
+  mutate(Region = str_extract(ParkTags, "Geographic Regions: [^;]+")) %>%
+  mutate(Region = str_remove(Region, "Geographic Regions: ")) %>% 
+  separate_rows(Region, sep = ",") %>% 
+  mutate(Region = str_squish(Region)) %>% 
+  group_by(Region) %>%
+  summarise(Count = n(), .groups = "drop") %>% 
+  arrange(Count) %>%
+  mutate(Region = factor(Region, levels = Region))
+
+species_by_location
+
+species_by_location_graph <- species_by_location %>% 
+  ggplot(aes(x = Region, y = Count, fill = Region)) +
+  geom_col() +
+  geom_text(aes(label = Count), vjust = -0.5, size = 3.5) +
+  labs(
+    title = "Amount of Different Species in Locations of Grand Canyon National Park",
+    y = NULL,
+    x = NULL
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(size = 8.5),
+    legend.position = "none"
+  ) +
+  scale_fill_brewer(palette = "YlGn") 
+
+species_by_location_graph
+  
+```
+
+```{r}
+most_referenced_historic_extirpated_species <- data %>%
+  filter(str_detect(ParkTags, "Park historic") & str_detect(ParkTags, "Park extirpated")) %>% 
+  arrange(desc(References)) %>% 
+  slice_head(n = 10) %>% 
+  mutate(
+    CommonNames = str_to_title(CommonNames),
+    CommonNames = factor(CommonNames, levels = CommonNames[order(References, decreasing = TRUE)])
+    )
+most_referenced_historic_extirpated_species
+
+most_referenced_historic_extirpated_species_boxplot <- most_referenced_historic_extirpated_species %>% 
+  ggplot(aes(x = References, fill = CommonNames)) +
+  geom_bar() +
+  labs(
+    title = "10 most referenced historic extirpated species\nin the Great Smoky Mountains National Park",
+    fill = "Species common names",
+    y = NULL
+  ) + 
+  theme(
+    plot.title.position = "plot",
+    plot.title = element_text(hjust = 0.5)
+  )
+
+most_referenced_historic_extirpated_species_boxplot
 
 ```
 
@@ -74,7 +138,6 @@ ggplot(data, aes(x = CategoryName, y = Observations)) +
 ```
 
 ```{r message=FALSE, warning=FALSE}
-
 
 nativeness_count <- data %>%
   filter(!is.na(Nativeness)) %>% 
@@ -157,4 +220,40 @@ ggplot(rare_animals, aes(x = reorder(ParkName, -RareSpeciesCount), y = RareSpeci
   ylab("Count of Rare Species") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+```
+
+```{r}
+feeding_strategies_proportions <- data %>%
+  filter(str_detect(ParkTags, "Habit:") & str_detect(ParkTags, "Arachnid")) %>%
+  mutate(Habit = str_extract(ParkTags, "Habit: [^;]+")) %>% # Extract "Habit:" value
+  mutate(Habit = str_remove(Habit, "Habit: ")) %>% # Remove "Habit:" prefix
+  separate_rows(Habit, sep = "[,\\s]+") %>% # Split on spaces or commas
+  group_by(SciName) %>%
+  summarise(Habit = paste(Habit, collapse = ", ")) %>% # Combine all habits per SciName
+  mutate(FeedingStrategy = case_when(
+    str_detect(Habit, "Hunter") & str_detect(Habit, "Web-Builder") ~ "Both",
+    str_detect(Habit, "Hunter") ~ "Hunter",
+    str_detect(Habit, "Web-Builder") ~ "Web-Builder"
+  )) %>%
+  filter(!is.na(FeedingStrategy)) %>% 
+  group_by(FeedingStrategy) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  mutate(Proportion = Count / sum(Count))
+
+feeding_strategies_proportions
+
+feeding_strategies_proportions_plot <- ggplot(feeding_strategies_proportions, aes(x = "", y = Proportion, fill = FeedingStrategy)) +
+  geom_bar(stat = "identity", alpha = 0.8, width = 1) +
+  coord_polar(theta = "y") +
+  labs(
+    title = "Proportion of Spiders Feeding Strategies \nin the Great Smoky Mountains National Park",
+    fill = NULL
+  ) +
+  scale_fill_brewer(palette = "Set1") +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+
+feeding_strategies_proportions_plot
 ```

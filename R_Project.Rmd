@@ -28,6 +28,23 @@ data <- read_csv("species.csv")
 data
 
 ```
+```{r message=FALSE, warning=FALSE}
+
+rare_animals <- data %>%
+  filter(GRank %in% c("G1","G2", "GH")) %>%
+  group_by(ParkName) %>%
+  summarise(RareSpeciesCount = n()) %>%
+  arrange(desc(RareSpeciesCount))
+
+ggplot(rare_animals, aes(x = reorder(ParkName, -RareSpeciesCount), y = RareSpeciesCount)) +
+  geom_bar(stat = "identity", fill = "darkred") +
+  theme_minimal() +
+  ggtitle("Number of Rare Species by National Park (G2, G1, GH)") +
+  xlab("National Park") +
+  ylab("Count of Rare Species") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
 
 ```{r}
 # Amount of species in every park

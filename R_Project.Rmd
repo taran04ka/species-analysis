@@ -189,9 +189,6 @@ feeding_strategies_proportions_plot <- ggplot(feeding_strategies_proportions, ae
   ) +
   scale_fill_brewer(palette = "Set1") +
   theme_void() +
-  theme(
-    plot.title = element_text(hjust = 0.5)
-  )
 
 feeding_strategies_proportions_plot
 ```
@@ -404,5 +401,33 @@ ggplot(top_orders, aes(x = reorder(CategoryName, -Percentage), y = Percentage, f
     fill = "Order"
   ) +
   theme_minimal()
+
+```
+
+```{r}
+# data %>% filter(str_detect(NativenessTags, "Cultivated"))
+
+cultivated_species <- data %>% 
+  filter(str_detect(NativenessTags, "Cultivated") & !is.na(Abundance))
+invasive_species
+
+cultivated_abundance_by_park_plot <- cultivated_species %>%
+  ggplot(aes(x = ParkName, fill = Abundance)) +
+  geom_dotplot() +
+  coord_flip() +
+  scale_y_continuous(
+    limits = c(0, 30),
+    breaks = seq(0, 30, 5)
+  ) +
+  labs(
+    title = "Amount and Abundance of Cultivated Species in Different Parks",
+    x = NULL,
+    y = NULL
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+
+cultivated_abundance_by_park_plot
 
 ```

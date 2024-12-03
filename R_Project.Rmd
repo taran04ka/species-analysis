@@ -280,7 +280,7 @@ ggplot(rank_data, aes(x = GRank_Count, y = SRank_Count, color = as.factor(Cluste
        color = "Cluster") +
   theme_minimal()
 
-````
+```
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -319,7 +319,7 @@ ggplot(status_counts, aes(x = ParkCode, y = Count, fill = Occurrence)) +
        y = "Proportion") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-````
+```
 
 
 ```{r message=FALSE, warning=FALSE}
@@ -336,4 +336,4 @@ ggplot(status_counts, aes(x = ParkCode, y = Count, fill = Abundance)) +
        y = "Proportion") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
-  ```
+```

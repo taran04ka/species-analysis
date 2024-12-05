@@ -643,18 +643,4 @@ ggplot(pie_data, aes(x = "", y = Percentage, fill = Relation)) +
 
 ```
 
-## Top 10 Species by Observations-to-Vouchers Ratio
 
-```{r message=FALSE, warning=FALSE}
-
-ggplot(ratio_data, aes(x = reorder(CommonNames, Obs_Vouchers_Ratio), y = Obs_Vouchers_Ratio)) +
-  geom_bar(stat = "identity", fill = "steelblue") +  # Use a single color
-  coord_flip() +  # Flip axes for better readability
-  labs(
-    title = "Top 10 Species by Observations-to-Vouchers Ratio",
-    x = "Species (Common Name)",
-    y = "Observations-to-Vouchers Ratio"
-      ) +
-  theme_minimal()
-  
-```
